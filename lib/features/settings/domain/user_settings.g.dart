@@ -29,6 +29,8 @@ _$UserSettingsImpl _$$UserSettingsImplFromJson(Map<String, dynamic> json) =>
       allowNetworkLookups: json['allowNetworkLookups'] as bool? ?? false,
       hasCompletedOnboarding: json['hasCompletedOnboarding'] as bool? ?? false,
       deduplicateScans: json['deduplicateScans'] as bool? ?? true,
+      hapticFeedback: json['hapticFeedback'] as bool? ?? true,
+      soundFeedback: json['soundFeedback'] as bool? ?? false,
     );
 
 Map<String, dynamic> _$$UserSettingsImplToJson(_$UserSettingsImpl instance) =>
@@ -45,6 +47,8 @@ Map<String, dynamic> _$$UserSettingsImplToJson(_$UserSettingsImpl instance) =>
       'allowNetworkLookups': instance.allowNetworkLookups,
       'hasCompletedOnboarding': instance.hasCompletedOnboarding,
       'deduplicateScans': instance.deduplicateScans,
+      'hapticFeedback': instance.hapticFeedback,
+      'soundFeedback': instance.soundFeedback,
     };
 
 const _$ThemePreferenceEnumMap = {

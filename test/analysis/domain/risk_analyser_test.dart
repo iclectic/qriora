@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:qriora/features/analysis/domain/risk_analyser.dart';
 import 'package:qriora/features/analysis/domain/risk_severity.dart';
-import 'package:qriora/features/analysis/domain/analysis_result.dart';
 import 'package:qriora/features/scanner/domain/scan_payload.dart';
 import 'package:qriora/features/scanner/domain/scan_content_type.dart';
 import 'package:qriora/features/scanner/domain/barcode_format.dart';

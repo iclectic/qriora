@@ -23,10 +23,12 @@ enum ExtractedEntityType {
   eventStart,
   eventEnd,
   eventLocation,
+  eventDescription,
   subject,
   body,
   productId,
   text,
+  note,
 }
 
 extension ExtractedEntityTypeX on ExtractedEntityType {
@@ -68,6 +70,8 @@ extension ExtractedEntityTypeX on ExtractedEntityType {
         return 'End time';
       case ExtractedEntityType.eventLocation:
         return 'Event location';
+      case ExtractedEntityType.eventDescription:
+        return 'Event description';
       case ExtractedEntityType.subject:
         return 'Subject';
       case ExtractedEntityType.body:
@@ -76,6 +80,8 @@ extension ExtractedEntityTypeX on ExtractedEntityType {
         return 'Product ID';
       case ExtractedEntityType.text:
         return 'Text';
+      case ExtractedEntityType.note:
+        return 'Note';
     }
   }
 

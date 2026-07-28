@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:share_plus/share_plus.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../scanner/domain/scan_record.dart';
 import '../../scanner/presentation/scanner_screen.dart';
@@ -11,7 +9,10 @@ import '../../analysis/domain/risk_severity.dart';
 import '../../analysis/domain/risk_finding.dart';
 import '../../analysis/domain/suggested_action.dart';
 import '../../analysis/domain/extracted_entity.dart';
+import '../../analysis/domain/action_executor.dart';
+import '../../analysis/domain/deep_link_allowlist.dart';
 import '../../../core/services/providers.dart';
+import '../../../core/services/qriora_logger.dart';
 
 /// Scan result screen — displays the safe preview, risk findings,
 /// and suggested actions for the user to choose from.
@@ -357,18 +358,29 @@ class _ActionsCard extends ConsumerWidget {
     SuggestedAction action,
     ScanRecord record,
   ) {
+    final executor = ActionExecutor();
+
     switch (action.type) {
       case SuggestedActionType.openUrl:
-        _confirmAndOpenUrl(context, action.actionValue!);
+        _confirmAndExecute(
+          context,
+          title: 'Open link',
+          action: action,
+          record: record,
+          onExecute: () => executor.openUrl(action.actionValue!),
+        );
         break;
       case SuggestedActionType.copy:
-        Clipboard.setData(ClipboardData(text: action.actionValue ?? record.payload.normalisedValue));
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Copied to clipboard')),
+        _execute(
+          context,
+          () => executor.copy(action.actionValue ?? record.payload.normalisedValue),
         );
         break;
       case SuggestedActionType.share:
-        Share.share(action.actionValue ?? record.payload.normalisedValue);
+        _execute(
+          context,
+          () => executor.share(action.actionValue ?? record.payload.normalisedValue),
+        );
         break;
       case SuggestedActionType.saveFavourite:
         _toggleFavourite(context, ref, record);
@@ -380,54 +392,82 @@ class _ActionsCard extends ConsumerWidget {
         context.go('/scan');
         break;
       case SuggestedActionType.joinWifi:
-        _confirmAction(context, 'Join Wi-Fi', 'Do you want to join this Wi-Fi network?', () {
-          // Platform-specific Wi-Fi joining would go here
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Wi-Fi joining requires platform integration')),
-          );
-        });
+        _confirmAndExecute(
+          context,
+          title: 'Join Wi-Fi',
+          action: action,
+          record: record,
+          onExecute: () async => const ActionFailure(
+            'Wi-Fi joining requires platform integration',
+          ),
+        );
         break;
       case SuggestedActionType.callPhone:
-        _confirmAction(context, 'Call number', 'Do you want to call ${action.actionValue}?', () {
-          launchUrl(Uri.parse('tel:${action.actionValue}'));
-        });
+        _confirmAndExecute(
+          context,
+          title: 'Call number',
+          action: action,
+          record: record,
+          onExecute: () => executor.callPhone(action.actionValue!),
+        );
         break;
       case SuggestedActionType.sendSms:
-        _confirmAction(context, 'Send SMS', 'Do you want to send an SMS to ${action.actionValue}?', () {
-          launchUrl(Uri.parse('sms:${action.actionValue}'));
-        });
+        _confirmAndExecute(
+          context,
+          title: 'Send SMS',
+          action: action,
+          record: record,
+          onExecute: () => executor.sendSms(action.actionValue!),
+        );
         break;
       case SuggestedActionType.composeEmail:
-        _confirmAction(context, 'Compose email', 'Do you want to compose an email?', () {
-          launchUrl(Uri.parse(action.actionValue ?? 'mailto:'));
-        });
+        _confirmAndExecute(
+          context,
+          title: 'Compose email',
+          action: action,
+          record: record,
+          onExecute: () => executor.composeEmail(action.actionValue ?? ''),
+        );
         break;
       case SuggestedActionType.saveContact:
-        _confirmAction(context, 'Save contact', 'Do you want to save this contact?', () {
-          // Platform-specific contact saving would go here
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Contact saving requires platform integration')),
-          );
-        });
+        _confirmAndExecute(
+          context,
+          title: 'Save contact',
+          action: action,
+          record: record,
+          onExecute: () async => const ActionFailure(
+            'Contact saving requires platform integration',
+          ),
+        );
         break;
       case SuggestedActionType.addCalendarEvent:
-        _confirmAction(context, 'Add calendar event', 'Do you want to add this event to your calendar?', () {
-          // Platform-specific calendar integration would go here
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Calendar integration requires platform setup')),
-          );
-        });
+        _confirmAndExecute(
+          context,
+          title: 'Add calendar event',
+          action: action,
+          record: record,
+          onExecute: () async => const ActionFailure(
+            'Calendar integration requires platform setup',
+          ),
+        );
         break;
       case SuggestedActionType.openInMap:
-        _confirmAction(context, 'Open in map', 'Do you want to open this location in a map app?', () {
-          launchUrl(Uri.parse(action.actionValue!));
-        });
+        _confirmAndExecute(
+          context,
+          title: 'Open in map',
+          action: action,
+          record: record,
+          onExecute: () => executor.openInMap(action.actionValue!),
+        );
         break;
       case SuggestedActionType.lookupProduct:
-        _confirmAction(context, 'Look up product', 'Do you want to look up this product online?', () {
-          final url = 'https://www.google.com/search?q=${Uri.encodeComponent(action.actionValue!)}';
-          launchUrl(Uri.parse(url));
-        });
+        _confirmAndExecute(
+          context,
+          title: 'Look up product',
+          action: action,
+          record: record,
+          onExecute: () => executor.lookupProduct(action.actionValue!),
+        );
         break;
       case SuggestedActionType.addNote:
         _showAddNoteDialog(context, ref, record);
@@ -435,23 +475,31 @@ class _ActionsCard extends ConsumerWidget {
     }
   }
 
-  void _confirmAndOpenUrl(BuildContext context, String url) {
-    _confirmAction(context, 'Open link', 'Do you want to open this link?\n\n$url', () {
-      launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-    });
+  void _execute(
+    BuildContext context,
+    Future<ActionResult> Function() onExecute,
+  ) async {
+    final result = await onExecute();
+    if (!context.mounted) return;
+    _showResultSnack(context, result);
   }
 
-  void _confirmAction(
-    BuildContext context,
-    String title,
-    String message,
-    VoidCallback onConfirm,
-  ) {
+  void _confirmAndExecute(
+    BuildContext context, {
+    required String title,
+    required SuggestedAction action,
+    required ScanRecord record,
+    required Future<ActionResult> Function() onExecute,
+  }) {
+    final message = ActionExecutor.buildConfirmationMessage(action, record);
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(title),
-        content: Text(message),
+        content: SingleChildScrollView(
+          child: Text(message),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
@@ -460,12 +508,23 @@ class _ActionsCard extends ConsumerWidget {
           FilledButton(
             onPressed: () {
               Navigator.of(ctx).pop();
-              onConfirm();
+              _execute(context, onExecute);
             },
             child: const Text('Confirm'),
           ),
         ],
       ),
+    );
+  }
+
+  void _showResultSnack(BuildContext context, ActionResult result) {
+    final message = switch (result) {
+      ActionSuccess(:final message) => message,
+      ActionCancelled() => 'Cancelled',
+      ActionFailure(:final reason) => reason,
+    };
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
     );
   }
 

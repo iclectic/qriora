@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'router.dart';
 import 'theme/qriora_theme.dart';
+import '../core/services/error_handling.dart';
 import '../core/services/providers.dart';
 import '../features/settings/domain/user_settings.dart';
 
@@ -28,6 +29,10 @@ class QrioraApp extends ConsumerWidget {
       darkTheme: darkTheme,
       themeMode: themeMode,
       routerConfig: router,
+      builder: (context, child) {
+        ErrorWidget.builder = (details) => QrioraErrorWidget(details: details);
+        return child ?? const SizedBox.shrink();
+      },
     );
   }
 

@@ -66,6 +66,9 @@ dependencies:
   # Scanning
   mobile_scanner: ^6.0.0
 
+  # Permissions
+  permission_handler: ^11.3.1
+
   # App info
   package_info_plus: ^8.1.2
 
@@ -77,6 +80,9 @@ dependencies:
 
 dev_dependencies:
   flutter_test:
+    sdk: flutter
+
+  integration_test:
     sdk: flutter
 
   # The "flutter_lints" package below contains a set of recommended lints to

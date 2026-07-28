@@ -103,6 +103,20 @@ class SettingsScreen extends ConsumerWidget {
             value: settings.deduplicateScans,
             onChanged: (_) => ref.read(settingsProvider.notifier).toggleDeduplicateScans(),
           ),
+          SwitchListTile(
+            secondary: const Icon(Icons.vibration),
+            title: const Text('Haptic feedback'),
+            subtitle: const Text('Vibrate when a code is detected'),
+            value: settings.hapticFeedback,
+            onChanged: (_) => ref.read(settingsProvider.notifier).toggleHapticFeedback(),
+          ),
+          SwitchListTile(
+            secondary: const Icon(Icons.volume_up_outlined),
+            title: const Text('Sound feedback'),
+            subtitle: const Text('Play a sound when a code is detected'),
+            value: settings.soundFeedback,
+            onChanged: (_) => ref.read(settingsProvider.notifier).toggleSoundFeedback(),
+          ),
 
           _SectionHeader('Data'),
           ListTile(

@@ -39,7 +39,20 @@ class QrioraDatabase extends _$QrioraDatabase {
   QrioraDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+        onCreate: (m) => m.createAll(),
+        onUpgrade: (m, from, to) async {
+          if (from < 2) {
+            await m.createIndex(
+              Index('idx_scan_records_normalised_value',
+                  'CREATE INDEX idx_scan_records_normalised_value ON scan_records (normalised_value)'),
+            );
+          }
+        },
+      );
 
   /// Inserts a scan record.
   Future<void> insertScanRecord(ScanRecordsCompanion companion) =>
@@ -87,6 +100,56 @@ class QrioraDatabase extends _$QrioraDatabase {
   Stream<List<ScanRecord>> watchAllScanRecords() =>
       (select(scanRecords)..orderBy([(t) => OrderingTerm.desc(t.scannedAt)]))
           .watch();
+
+  /// Watches scan records filtered by a search query.
+  Stream<List<ScanRecord>> watchSearchScanRecords(String query) {
+    final likePattern = '%$query%';
+    return (select(scanRecords)
+          ..where((t) => t.normalisedValue.like(likePattern))
+          ..orderBy([(t) => OrderingTerm.desc(t.scannedAt)]))
+        .watch();
+  }
+
+  /// Watches scan records filtered by content type.
+  Stream<List<ScanRecord>> watchScanRecordsByType(String contentType) =>
+      (select(scanRecords)
+            ..where((t) => t.contentType.equals(contentType))
+            ..orderBy([(t) => OrderingTerm.desc(t.scannedAt)]))
+          .watch();
+
+  /// Watches scan records with both search and content type filter.
+  Stream<List<ScanRecord>> watchFilteredScanRecords({
+    String? query,
+    String? contentType,
+  }) {
+    final q = select(scanRecords)
+      ..orderBy([(t) => OrderingTerm.desc(t.scannedAt)]);
+    if (query != null && query.isNotEmpty) {
+      q.where((t) => t.normalisedValue.like('%$query%'));
+    }
+    if (contentType != null && contentType.isNotEmpty) {
+      q.where((t) => t.contentType.equals(contentType));
+    }
+    return q.watch();
+  }
+
+  /// Gets a page of scan records for paginated loading.
+  Future<List<ScanRecord>> getScanRecordsPage({
+    int limit = 50,
+    int offset = 0,
+  }) =>
+      (select(scanRecords)
+            ..orderBy([(t) => OrderingTerm.desc(t.scannedAt)])
+            ..limit(limit, offset: offset))
+          .get();
+
+  /// Counts total scan records.
+  Future<int> countScanRecords() async {
+    final count = countAll();
+    final query = selectOnly(scanRecords)..addColumns([count]);
+    final result = await query.getSingle();
+    return result.read(count) ?? 0;
+  }
 
   /// Watches favourite scan records as a stream.
   Stream<List<ScanRecord>> watchFavouriteScanRecords() =>

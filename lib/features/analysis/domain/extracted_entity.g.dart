@@ -41,8 +41,10 @@ const _$ExtractedEntityTypeEnumMap = {
   ExtractedEntityType.eventStart: 'eventStart',
   ExtractedEntityType.eventEnd: 'eventEnd',
   ExtractedEntityType.eventLocation: 'eventLocation',
+  ExtractedEntityType.eventDescription: 'eventDescription',
   ExtractedEntityType.subject: 'subject',
   ExtractedEntityType.body: 'body',
   ExtractedEntityType.productId: 'productId',
   ExtractedEntityType.text: 'text',
+  ExtractedEntityType.note: 'note',
 };

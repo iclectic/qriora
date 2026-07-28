@@ -6,6 +6,10 @@ import '../../scanner/presentation/scanner_screen.dart';
 import '../../analysis/domain/risk_finding.dart';
 import '../../analysis/domain/risk_severity.dart';
 import '../../analysis/domain/analysis_method.dart';
+import '../../analysis/domain/analysis_report.dart';
+import '../../analysis/domain/analysis_report_service.dart';
+import '../../../core/services/providers.dart';
+import '../../../app/theme/design_tokens.dart';
 
 /// Risk explanation screen — shows detailed information about a
 /// single risk finding.
@@ -35,7 +39,7 @@ class RiskExplanationScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Risk explanation'),
+        title: const Text('Risk insight'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.pop(),
@@ -55,6 +59,12 @@ class RiskExplanationScreen extends ConsumerWidget {
             _RecommendationCard(finding: finding),
             const SizedBox(height: 16),
             _MethodCard(finding: finding),
+            const SizedBox(height: 24),
+            _ReportSection(
+              finding: finding,
+              findingIndex: findingIndex,
+              scanId: scanId,
+            ),
           ],
         ),
       ),
@@ -67,14 +77,35 @@ class _SeverityHeader extends StatelessWidget {
 
   const _SeverityHeader({required this.finding});
 
+  Color _severityColor(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    switch (finding.severity) {
+      case RiskSeverity.informational:
+        return scheme.primary;
+      case RiskSeverity.caution:
+        return Colors.amber.shade700;
+      case RiskSeverity.highRisk:
+        return scheme.error;
+      case RiskSeverity.unableToDetermine:
+        return scheme.outline;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final color = _severityColor(context);
     return Card(
-      child: Padding(
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border(
+            left: BorderSide(color: color, width: 4),
+          ),
+          borderRadius: BorderRadius.circular(QrioraDesignTokens.radiusMd),
+        ),
         padding: const EdgeInsets.all(20),
         child: Row(
           children: [
-            Icon(riskSeverityIcon(finding.severity), size: 40),
+            Icon(riskSeverityIcon(finding.severity), size: 40, color: color),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
@@ -84,11 +115,20 @@ class _SeverityHeader extends StatelessWidget {
                     finding.title,
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
-                  Text(
-                    finding.severity.label,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                  const SizedBox(height: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(QrioraDesignTokens.radiusSm),
+                    ),
+                    child: Text(
+                      finding.severity.label,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: color,
+                          ),
+                    ),
                   ),
                 ],
               ),
@@ -226,6 +266,210 @@ class _DetailRow extends StatelessWidget {
           ),
           Text(value, style: Theme.of(context).textTheme.bodySmall),
         ],
+      ),
+    );
+  }
+}
+
+/// Section for reporting incorrect analysis.
+class _ReportSection extends ConsumerStatefulWidget {
+  final RiskFinding finding;
+  final int findingIndex;
+  final String scanId;
+
+  const _ReportSection({
+    required this.finding,
+    required this.findingIndex,
+    required this.scanId,
+  });
+
+  @override
+  ConsumerState<_ReportSection> createState() => _ReportSectionState();
+}
+
+class _ReportSectionState extends ConsumerState<_ReportSection> {
+  bool _hasReported = false;
+  bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkExistingReport();
+  }
+
+  Future<void> _checkExistingReport() async {
+    final service = ref.read(analysisReportServiceProvider);
+    final exists = await service.hasReportForFinding(
+      widget.scanId,
+      widget.findingIndex,
+    );
+    if (mounted) setState(() => _hasReported = exists);
+  }
+
+  void _showReportDialog() {
+    AnalysisReportCategory? selectedCategory;
+    final commentController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('Report incorrect analysis'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Help improve Qriora by telling us what is wrong with this finding.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: 16),
+                Text('Issue type', style: Theme.of(context).textTheme.labelLarge),
+                const SizedBox(height: 8),
+                ...AnalysisReportCategory.values.map((cat) {
+                  return RadioListTile<AnalysisReportCategory>(
+                    title: Text(cat.label),
+                    value: cat,
+                    groupValue: selectedCategory,
+                    onChanged: (v) => setDialogState(() => selectedCategory = v),
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                  );
+                }),
+                const SizedBox(height: 8),
+                Text('Additional comments (optional)',
+                    style: Theme.of(context).textTheme.labelLarge),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: commentController,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    hintText: 'Describe the issue...',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: selectedCategory == null || _isSubmitting
+                  ? null
+                  : () async {
+                      setDialogState(() => _isSubmitting = true);
+                      final service = ref.read(analysisReportServiceProvider);
+                      await service.submitReport(
+                        scanId: widget.scanId,
+                        ruleId: widget.finding.ruleId,
+                        findingIndex: widget.findingIndex,
+                        category: selectedCategory!,
+                        comment: commentController.text.trim().isNotEmpty
+                            ? commentController.text.trim()
+                            : null,
+                        analysisVersion: widget.finding.ruleVersion,
+                      );
+                      if (ctx.mounted) Navigator.of(ctx).pop();
+                      if (mounted) {
+                        setState(() {
+                          _hasReported = true;
+                          _isSubmitting = false;
+                        });
+                      }
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Report submitted. Thank you for your feedback.'),
+                          ),
+                        );
+                      }
+                    },
+              child: _isSubmitting
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Submit'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_hasReported) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            children: [
+              Icon(Icons.check_circle_outline,
+                  color: Theme.of(context).colorScheme.primary, size: 24),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Report submitted',
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                    Text(
+                      'You have already reported an issue with this finding. Thank you for your feedback.',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.feedback_outlined,
+                    color: Theme.of(context).colorScheme.outline, size: 24),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Is this analysis incorrect?',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'If this warning is wrong or confusing, let us know. '
+              'Your report is stored locally and helps improve the analysis rules.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: _showReportDialog,
+                icon: const Icon(Icons.report_outlined, size: 18),
+                label: const Text('Report incorrect analysis'),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

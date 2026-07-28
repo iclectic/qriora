@@ -2,6 +2,7 @@ import '../../scanner/domain/scan_payload.dart';
 import '../../scanner/domain/scan_content_type.dart';
 import 'suggested_action.dart';
 import 'extracted_entity.dart';
+import 'deep_link_allowlist.dart';
 
 /// Resolves the list of actions a user can take for a given payload.
 ///
@@ -169,12 +170,16 @@ class ActionResolver {
         break;
 
       case ScanContentType.deepLink:
-        actions.add(SuggestedAction(
-          type: SuggestedActionType.openUrl,
-          label: 'Open link',
-          actionValue: payload.normalisedValue,
-          isPrimary: true,
-        ));
+        final uri = Uri.tryParse(payload.normalisedValue);
+        final isApproved = uri != null && DeepLinkAllowlist.isApprovedUri(uri);
+        if (isApproved) {
+          actions.add(SuggestedAction(
+            type: SuggestedActionType.openUrl,
+            label: 'Open link',
+            actionValue: payload.normalisedValue,
+            isPrimary: true,
+          ));
+        }
         actions.add(SuggestedAction(
           type: SuggestedActionType.copy,
           label: 'Copy link',

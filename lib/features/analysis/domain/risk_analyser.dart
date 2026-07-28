@@ -106,6 +106,9 @@ class RiskAnalyser {
     findings.addAll(_checkUrlShorteners(payload, version));
     findings.addAll(_checkSuspiciousKeywords(payload, version));
     findings.addAll(_checkEmbeddedCredentials(payload, version));
+    findings.addAll(_checkPunycodeHomograph(payload, version));
+    findings.addAll(_checkUnicodeConfusables(payload, version));
+    findings.addAll(_checkLocalhostOrPrivateIp(payload, version));
 
     // Sort findings by severity (highest first)
     findings.sort((a, b) => b.severity.sortOrder.compareTo(a.severity.sortOrder));
@@ -265,6 +268,25 @@ class RiskAnalyser {
         ));
       }
     }
+
+    // Check for URL in SMS body (potential SMS phishing)
+    final body = _getEntityValue(payload, ExtractedEntityType.body);
+    if (body != null && _containsUrl(body)) {
+      findings.add(RiskFinding(
+        ruleId: 'sms-embedded-url',
+        severity: RiskSeverity.highRisk,
+        title: 'SMS contains a URL',
+        explanation: 'This SMS payload contains a URL in the message body. SMS messages '
+            'with URLs are a common phishing vector (smishing). The link may lead to a '
+            'fake website designed to steal credentials or install malware.',
+        evidence: 'URL found in SMS body',
+        recommendedResponse: 'Do not open the link unless you were expecting this message '
+            'and trust the sender. Never enter credentials on a site reached via SMS.',
+        analysisMethod: AnalysisMethod.deterministicRule,
+        ruleVersion: version,
+      ));
+    }
+
     return findings;
   }
 
@@ -302,15 +324,103 @@ class RiskAnalyser {
       ));
     }
 
+    // Check for WEP encryption (weak and broken)
+    if (encryption != null && encryption.toUpperCase() == 'WEP') {
+      findings.add(RiskFinding(
+        ruleId: 'wifi-wep-encryption',
+        severity: RiskSeverity.highRisk,
+        title: 'WEP encryption (insecure)',
+        explanation: 'This Wi-Fi network uses WEP encryption, which is critically insecure '
+            'and can be cracked within minutes. WEP is deprecated and should not be used.',
+        evidence: 'Encryption: WEP',
+        recommendedResponse: 'Do not join this network if you need privacy. WEP provides '
+            'no meaningful security against eavesdropping.',
+        analysisMethod: AnalysisMethod.deterministicRule,
+        ruleVersion: version,
+      ));
+    }
+
     return findings;
   }
 
   List<RiskFinding> _analyseContact(ScanPayload payload, String version) {
-    return [];
+    final findings = <RiskFinding>[];
+
+    // Check for suspicious URLs embedded in contact fields
+    final note = _getEntityValue(payload, ExtractedEntityType.note);
+    if (note != null && _containsUrl(note)) {
+      findings.add(RiskFinding(
+        ruleId: 'contact-embedded-url',
+        severity: RiskSeverity.caution,
+        title: 'Contact contains a URL',
+        explanation: 'This contact entry contains a URL in a note or memo field. '
+            'Saving this contact may add a clickable link to your address book that '
+            'could lead to an unexpected destination.',
+        evidence: 'URL found in contact note',
+        recommendedResponse: 'Review the URL before saving. Do not click it from your '
+            'contacts app unless you trust the source.',
+        analysisMethod: AnalysisMethod.deterministicRule,
+        ruleVersion: version,
+      ));
+    }
+
+    // Check for overly large contact (potential data exfiltration)
+    if (payload.rawValue.length > 2000) {
+      findings.add(RiskFinding(
+        ruleId: 'contact-oversized',
+        severity: RiskSeverity.caution,
+        title: 'Unusually large contact entry',
+        explanation: 'This contact entry is unusually large, which may indicate '
+            'embedded data or an attempt to exfiltrate information through the contact format.',
+        evidence: 'Payload size: ${payload.rawValue.length} characters',
+        recommendedResponse: 'Review the contact fields carefully before saving.',
+        analysisMethod: AnalysisMethod.deterministicRule,
+        ruleVersion: version,
+      ));
+    }
+
+    return findings;
   }
 
   List<RiskFinding> _analyseCalendarEvent(ScanPayload payload, String version) {
-    return [];
+    final findings = <RiskFinding>[];
+
+    // Check for URL in description
+    final description = _getEntityValue(payload, ExtractedEntityType.eventDescription);
+    if (description != null && _containsUrl(description)) {
+      findings.add(RiskFinding(
+        ruleId: 'calendar-embedded-url',
+        severity: RiskSeverity.caution,
+        title: 'Calendar event contains a URL',
+        explanation: 'This calendar event contains a URL in its description. Calendar '
+            'descriptions can contain clickable links that may lead to unexpected '
+            'websites or trigger actions.',
+        evidence: 'URL found in event description',
+        recommendedResponse: 'Review the URL before clicking. Do not open it from your '
+            'calendar app unless you trust the source.',
+        analysisMethod: AnalysisMethod.deterministicRule,
+        ruleVersion: version,
+      ));
+    }
+
+    // Check for all-day event with no end time (potential calendar spam)
+    final start = _getEntityValue(payload, ExtractedEntityType.eventStart);
+    final end = _getEntityValue(payload, ExtractedEntityType.eventEnd);
+    if (start != null && (end == null || end.isEmpty)) {
+      findings.add(RiskFinding(
+        ruleId: 'calendar-no-end-time',
+        severity: RiskSeverity.informational,
+        title: 'Event has no end time',
+        explanation: 'This calendar event has a start time but no end time, which may '
+            'result in an all-day or indefinite event in your calendar.',
+        evidence: 'Start: $start, End: not specified',
+        recommendedResponse: 'Check the event details before adding it to your calendar.',
+        analysisMethod: AnalysisMethod.deterministicRule,
+        ruleVersion: version,
+      ));
+    }
+
+    return findings;
   }
 
   List<RiskFinding> _analyseGeo(ScanPayload payload, String version) {
@@ -438,6 +548,129 @@ class RiskAnalyser {
     } catch (_) {}
 
     return findings;
+  }
+
+  // --- Extended cross-cutting rules ---
+
+  List<RiskFinding> _checkPunycodeHomograph(ScanPayload payload, String version) {
+    final findings = <RiskFinding>[];
+    if (!_isUrlType(payload.contentType)) return findings;
+
+    final domain = _getDomain(payload);
+    if (domain == null) return findings;
+
+    final lowerDomain = domain.toLowerCase();
+    if (lowerDomain.contains('xn--')) {
+      findings.add(RiskFinding(
+        ruleId: 'url-punycode-domain',
+        severity: RiskSeverity.highRisk,
+        title: 'Internationalised domain (punycode)',
+        explanation: 'This URL uses an internationalised domain name (IDN) encoded as '
+            'punycode (contains "xn--"). IDNs can be used for homograph attacks, where '
+            'attackers register look-alike domains using characters from different scripts '
+            '(e.g., Cyrillic "а" instead of Latin "a").',
+        evidence: domain,
+        recommendedResponse: 'Scrutinise the domain carefully. If you were not expecting '
+            'an internationalised domain, do not open this link.',
+        analysisMethod: AnalysisMethod.deterministicRule,
+        ruleVersion: version,
+      ));
+    }
+
+    return findings;
+  }
+
+  List<RiskFinding> _checkUnicodeConfusables(ScanPayload payload, String version) {
+    final findings = <RiskFinding>[];
+    if (!_isUrlType(payload.contentType)) return findings;
+
+    final domain = _getDomain(payload);
+    if (domain == null) return findings;
+
+    // Detect mixed-script domains (Latin + Cyrillic, Latin + Greek, etc.)
+    if (_hasMixedScripts(domain)) {
+      findings.add(RiskFinding(
+        ruleId: 'url-mixed-script-domain',
+        severity: RiskSeverity.highRisk,
+        title: 'Mixed-script domain (potential homograph)',
+        explanation: 'This domain name mixes characters from different writing systems '
+            '(e.g., Latin and Cyrillic). This is a common technique in homograph attacks '
+            'where visually identical characters from different scripts are used to '
+            'impersonate legitimate domains.',
+        evidence: domain,
+        recommendedResponse: 'Do not open this link. The domain may be impersonating a '
+            'legitimate website using look-alike characters.',
+        analysisMethod: AnalysisMethod.deterministicRule,
+        ruleVersion: version,
+      ));
+    }
+
+    return findings;
+  }
+
+  List<RiskFinding> _checkLocalhostOrPrivateIp(ScanPayload payload, String version) {
+    final findings = <RiskFinding>[];
+    if (!_isUrlType(payload.contentType)) return findings;
+
+    final domain = _getDomain(payload);
+    if (domain == null) return findings;
+
+    final lowerDomain = domain.toLowerCase();
+    final isLocal = lowerDomain == 'localhost' ||
+        lowerDomain == '127.0.0.1' ||
+        lowerDomain == '::1' ||
+        lowerDomain.startsWith('127.') ||
+        lowerDomain.startsWith('10.') ||
+        lowerDomain.startsWith('192.168.') ||
+        _isPrivateIp(lowerDomain);
+
+    if (isLocal) {
+      findings.add(RiskFinding(
+        ruleId: 'url-localhost-or-private-ip',
+        severity: RiskSeverity.caution,
+        title: 'Link points to a local or private address',
+        explanation: 'This URL points to a localhost or private network address. '
+            'Such links only work on the local network and may be used to target '
+            'internal services or devices (e.g., routers, IoT devices).',
+        evidence: domain,
+        recommendedResponse: 'Only open this link if you are on a trusted network and '
+            'understand what service it accesses.',
+        analysisMethod: AnalysisMethod.deterministicRule,
+        ruleVersion: version,
+      ));
+    }
+
+    return findings;
+  }
+
+  bool _isPrivateIp(String host) {
+    // 172.16.0.0 – 172.31.255.255
+    final match = RegExp(r'^172\.(\d{1,3})\.').firstMatch(host);
+    if (match != null) {
+      final second = int.tryParse(match.group(1)!);
+      if (second != null && second >= 16 && second <= 31) return true;
+    }
+    // 169.254.x.x (link-local)
+    if (host.startsWith('169.254.')) return true;
+    return false;
+  }
+
+  bool _hasMixedScripts(String domain) {
+    final hasLatin = RegExp(r'[a-z]', caseSensitive: false).hasMatch(domain);
+    final hasCyrillic = RegExp(r'[Ѐ-ӿ]').hasMatch(domain);
+    final hasGreek = RegExp(r'[Ͱ-Ͽ]').hasMatch(domain);
+    final hasCJK = RegExp(r'[一-鿿぀-ヿ]').hasMatch(domain);
+
+    final scripts = [hasLatin, hasCyrillic, hasGreek, hasCJK].where((s) => s).length;
+    return scripts > 1;
+  }
+
+  bool _containsUrl(String text) {
+    final urlPattern = RegExp(
+      r'https?://[^\s<>"]+',
+      caseSensitive: false,
+    );
+    return urlPattern.hasMatch(text);
   }
 
   // --- Helpers ---

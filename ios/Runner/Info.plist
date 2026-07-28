@@ -66,5 +66,9 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Qriora needs camera access to scan QR codes and barcodes. No photos or videos are stored.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Qriora needs photo library access to scan QR codes from saved images. No photos are uploaded or shared.</string>
 </dict>
 </plist>

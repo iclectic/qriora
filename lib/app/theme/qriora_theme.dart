@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 
+import 'design_tokens.dart';
+
 /// Qriora theme configuration.
 ///
 /// The visual language communicates safety, privacy, clarity,
 /// intelligence, and trust. It avoids alarmist red screens,
 /// excessive gradients, and misleading security shields.
+///
+/// All colours, radii, and spacing values are sourced from
+/// [QrioraDesignTokens] to ensure consistency.
 class QrioraTheme {
   QrioraTheme._();
 
@@ -12,7 +17,7 @@ class QrioraTheme {
         useMaterial3: true,
         brightness: Brightness.light,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF2D6A6F),
+          seedColor: QrioraDesignTokens.primaryBrand,
           brightness: Brightness.light,
         ),
         appBarTheme: const AppBarTheme(
@@ -23,7 +28,7 @@ class QrioraTheme {
         cardTheme: CardThemeData(
           elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(QrioraDesignTokens.radiusLg),
             side: BorderSide(
               color: Colors.grey.shade200,
               width: 1,
@@ -34,7 +39,7 @@ class QrioraTheme {
           style: FilledButton.styleFrom(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(QrioraDesignTokens.radiusMd),
             ),
           ),
         ),
@@ -42,13 +47,13 @@ class QrioraTheme {
           style: OutlinedButton.styleFrom(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(QrioraDesignTokens.radiusMd),
             ),
           ),
         ),
         inputDecorationTheme: InputDecorationTheme(
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(QrioraDesignTokens.radiusMd),
           ),
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         ),
@@ -62,7 +67,7 @@ class QrioraTheme {
         useMaterial3: true,
         brightness: Brightness.dark,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF2D6A6F),
+          seedColor: QrioraDesignTokens.primaryBrand,
           brightness: Brightness.dark,
         ),
         appBarTheme: const AppBarTheme(
@@ -110,7 +115,7 @@ class QrioraTheme {
 
   static ThemeData get highContrastLight => light.copyWith(
         colorScheme: const ColorScheme.highContrastLight(
-          primary: Color(0xFF005F5F),
+          primary: QrioraDesignTokens.primaryBrandHighContrastLight,
           secondary: Color(0xFF004D4D),
           surface: Colors.white,
           onSurface: Colors.black,
@@ -124,7 +129,7 @@ class QrioraTheme {
 
   static ThemeData get highContrastDark => dark.copyWith(
         colorScheme: const ColorScheme.highContrastDark(
-          primary: Color(0xFF7CD6D6),
+          primary: QrioraDesignTokens.primaryBrandHighContrastDark,
           secondary: Color(0xFF9DEEEE),
           surface: Colors.black,
           onSurface: Colors.white,

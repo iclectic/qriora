@@ -57,6 +57,12 @@ mixin _$UserSettings {
   /// Whether to deduplicate consecutive scans.
   bool get deduplicateScans => throw _privateConstructorUsedError;
 
+  /// Whether haptic feedback is enabled on scan detection.
+  bool get hapticFeedback => throw _privateConstructorUsedError;
+
+  /// Whether sound feedback is enabled on scan detection.
+  bool get soundFeedback => throw _privateConstructorUsedError;
+
   /// Serializes this UserSettings to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
 
@@ -87,6 +93,8 @@ abstract class $UserSettingsCopyWith<$Res> {
     bool allowNetworkLookups,
     bool hasCompletedOnboarding,
     bool deduplicateScans,
+    bool hapticFeedback,
+    bool soundFeedback,
   });
 
   $RetentionPolicyCopyWith<$Res> get retentionPolicy;
@@ -119,6 +127,8 @@ class _$UserSettingsCopyWithImpl<$Res, $Val extends UserSettings>
     Object? allowNetworkLookups = null,
     Object? hasCompletedOnboarding = null,
     Object? deduplicateScans = null,
+    Object? hapticFeedback = null,
+    Object? soundFeedback = null,
   }) {
     return _then(
       _value.copyWith(
@@ -170,6 +180,14 @@ class _$UserSettingsCopyWithImpl<$Res, $Val extends UserSettings>
                 ? _value.deduplicateScans
                 : deduplicateScans // ignore: cast_nullable_to_non_nullable
                       as bool,
+            hapticFeedback: null == hapticFeedback
+                ? _value.hapticFeedback
+                : hapticFeedback // ignore: cast_nullable_to_non_nullable
+                      as bool,
+            soundFeedback: null == soundFeedback
+                ? _value.soundFeedback
+                : soundFeedback // ignore: cast_nullable_to_non_nullable
+                      as bool,
           )
           as $Val,
     );
@@ -208,6 +226,8 @@ abstract class _$$UserSettingsImplCopyWith<$Res>
     bool allowNetworkLookups,
     bool hasCompletedOnboarding,
     bool deduplicateScans,
+    bool hapticFeedback,
+    bool soundFeedback,
   });
 
   @override
@@ -240,6 +260,8 @@ class __$$UserSettingsImplCopyWithImpl<$Res>
     Object? allowNetworkLookups = null,
     Object? hasCompletedOnboarding = null,
     Object? deduplicateScans = null,
+    Object? hapticFeedback = null,
+    Object? soundFeedback = null,
   }) {
     return _then(
       _$UserSettingsImpl(
@@ -291,6 +313,14 @@ class __$$UserSettingsImplCopyWithImpl<$Res>
             ? _value.deduplicateScans
             : deduplicateScans // ignore: cast_nullable_to_non_nullable
                   as bool,
+        hapticFeedback: null == hapticFeedback
+            ? _value.hapticFeedback
+            : hapticFeedback // ignore: cast_nullable_to_non_nullable
+                  as bool,
+        soundFeedback: null == soundFeedback
+            ? _value.soundFeedback
+            : soundFeedback // ignore: cast_nullable_to_non_nullable
+                  as bool,
       ),
     );
   }
@@ -314,6 +344,8 @@ class _$UserSettingsImpl implements _UserSettings {
     this.allowNetworkLookups = false,
     this.hasCompletedOnboarding = false,
     this.deduplicateScans = true,
+    this.hapticFeedback = true,
+    this.soundFeedback = false,
   });
 
   factory _$UserSettingsImpl.fromJson(Map<String, dynamic> json) =>
@@ -379,9 +411,19 @@ class _$UserSettingsImpl implements _UserSettings {
   @JsonKey()
   final bool deduplicateScans;
 
+  /// Whether haptic feedback is enabled on scan detection.
+  @override
+  @JsonKey()
+  final bool hapticFeedback;
+
+  /// Whether sound feedback is enabled on scan detection.
+  @override
+  @JsonKey()
+  final bool soundFeedback;
+
   @override
   String toString() {
-    return 'UserSettings(themePreference: $themePreference, privateMode: $privateMode, biometricLockEnabled: $biometricLockEnabled, saveHistory: $saveHistory, retentionPolicy: $retentionPolicy, maskSensitiveValues: $maskSensitiveValues, reducedMotion: $reducedMotion, highContrast: $highContrast, largeText: $largeText, allowNetworkLookups: $allowNetworkLookups, hasCompletedOnboarding: $hasCompletedOnboarding, deduplicateScans: $deduplicateScans)';
+    return 'UserSettings(themePreference: $themePreference, privateMode: $privateMode, biometricLockEnabled: $biometricLockEnabled, saveHistory: $saveHistory, retentionPolicy: $retentionPolicy, maskSensitiveValues: $maskSensitiveValues, reducedMotion: $reducedMotion, highContrast: $highContrast, largeText: $largeText, allowNetworkLookups: $allowNetworkLookups, hasCompletedOnboarding: $hasCompletedOnboarding, deduplicateScans: $deduplicateScans, hapticFeedback: $hapticFeedback, soundFeedback: $soundFeedback)';
   }
 
   @override
@@ -412,7 +454,11 @@ class _$UserSettingsImpl implements _UserSettings {
             (identical(other.hasCompletedOnboarding, hasCompletedOnboarding) ||
                 other.hasCompletedOnboarding == hasCompletedOnboarding) &&
             (identical(other.deduplicateScans, deduplicateScans) ||
-                other.deduplicateScans == deduplicateScans));
+                other.deduplicateScans == deduplicateScans) &&
+            (identical(other.hapticFeedback, hapticFeedback) ||
+                other.hapticFeedback == hapticFeedback) &&
+            (identical(other.soundFeedback, soundFeedback) ||
+                other.soundFeedback == soundFeedback));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -431,6 +477,8 @@ class _$UserSettingsImpl implements _UserSettings {
     allowNetworkLookups,
     hasCompletedOnboarding,
     deduplicateScans,
+    hapticFeedback,
+    soundFeedback,
   );
 
   /// Create a copy of UserSettings
@@ -461,6 +509,8 @@ abstract class _UserSettings implements UserSettings {
     final bool allowNetworkLookups,
     final bool hasCompletedOnboarding,
     final bool deduplicateScans,
+    final bool hapticFeedback,
+    final bool soundFeedback,
   }) = _$UserSettingsImpl;
 
   factory _UserSettings.fromJson(Map<String, dynamic> json) =
@@ -513,6 +563,14 @@ abstract class _UserSettings implements UserSettings {
   /// Whether to deduplicate consecutive scans.
   @override
   bool get deduplicateScans;
+
+  /// Whether haptic feedback is enabled on scan detection.
+  @override
+  bool get hapticFeedback;
+
+  /// Whether sound feedback is enabled on scan detection.
+  @override
+  bool get soundFeedback;
 
   /// Create a copy of UserSettings
   /// with the given fields replaced by the non-null parameter values.

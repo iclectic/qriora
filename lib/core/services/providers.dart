@@ -3,6 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../features/settings/domain/user_settings.dart';
 import '../../features/settings/domain/retention_policy.dart';
+import '../../features/analysis/domain/analysis_report_service.dart';
 import '../database/qriora_database.dart';
 
 /// Provides the [QrioraDatabase] instance.
@@ -87,6 +88,12 @@ class SettingsNotifier extends StateNotifier<UserSettings> {
   Future<void> toggleDeduplicateScans() =>
       update((s) => s.copyWith(deduplicateScans: !s.deduplicateScans));
 
+  Future<void> toggleHapticFeedback() =>
+      update((s) => s.copyWith(hapticFeedback: !s.hapticFeedback));
+
+  Future<void> toggleSoundFeedback() =>
+      update((s) => s.copyWith(soundFeedback: !s.soundFeedback));
+
   String _encodeSettings(UserSettings s) {
     final parts = <String>[];
     parts.add('themePreference=${s.themePreference.name}');
@@ -102,6 +109,8 @@ class SettingsNotifier extends StateNotifier<UserSettings> {
     parts.add('allowNetworkLookups=${s.allowNetworkLookups}');
     parts.add('hasCompletedOnboarding=${s.hasCompletedOnboarding}');
     parts.add('deduplicateScans=${s.deduplicateScans}');
+    parts.add('hapticFeedback=${s.hapticFeedback}');
+    parts.add('soundFeedback=${s.soundFeedback}');
     return parts.join(';');
   }
 
@@ -135,6 +144,8 @@ class SettingsNotifier extends StateNotifier<UserSettings> {
       allowNetworkLookups: map['allowNetworkLookups'] == 'true',
       hasCompletedOnboarding: map['hasCompletedOnboarding'] == 'true',
       deduplicateScans: map['deduplicateScans'] != 'false',
+      hapticFeedback: map['hapticFeedback'] != 'false',
+      soundFeedback: map['soundFeedback'] == 'true',
     );
   }
 }
@@ -144,4 +155,10 @@ final settingsProvider =
     StateNotifierProvider<SettingsNotifier, UserSettings>((ref) {
   final storage = ref.watch(secureStorageProvider);
   return SettingsNotifier(storage);
+});
+
+/// Provides the [AnalysisReportService].
+final analysisReportServiceProvider = Provider<AnalysisReportService>((ref) {
+  final storage = ref.watch(secureStorageProvider);
+  return AnalysisReportService(storage: storage);
 });

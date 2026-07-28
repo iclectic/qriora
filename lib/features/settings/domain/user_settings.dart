@@ -65,6 +65,12 @@ class UserSettings with _$UserSettings {
 
     /// Whether to deduplicate consecutive scans.
     @Default(true) bool deduplicateScans,
+
+    /// Whether haptic feedback is enabled on scan detection.
+    @Default(true) bool hapticFeedback,
+
+    /// Whether sound feedback is enabled on scan detection.
+    @Default(false) bool soundFeedback,
   }) = _UserSettings;
 
   factory UserSettings.fromJson(Map<String, dynamic> json) =>
