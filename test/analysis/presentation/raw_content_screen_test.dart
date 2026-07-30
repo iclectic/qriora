@@ -11,6 +11,8 @@ import 'package:qriora/features/scanner/presentation/scanner_screen.dart';
 import 'package:qriora/features/analysis/domain/analysis_result.dart';
 import 'package:qriora/features/analysis/domain/risk_severity.dart';
 import 'package:qriora/features/analysis/domain/analysis_method.dart';
+import 'package:qriora/core/services/screenshot_protection_service.dart';
+import 'package:qriora/core/services/providers.dart';
 
 ScanRecord _buildScanRecord(String id, String rawValue) {
   return ScanRecord(
@@ -38,13 +40,29 @@ ScanRecord _buildScanRecord(String id, String rawValue) {
   );
 }
 
+class _FakeScreenshotProtectionService extends ScreenshotProtectionService {
+  @override
+  bool get isEnabled => false;
+
+  @override
+  Future<bool> enable() async => true;
+
+  @override
+  Future<bool> disable() async => true;
+}
+
 void main() {
+  final overrides = [
+    screenshotProtectionProvider.overrideWithValue(_FakeScreenshotProtectionService()),
+  ];
+
   group('RawContentScreen', () {
     testWidgets('shows not found when scan record is missing', (tester) async {
       await tester.pumpWidget(
         ProviderScope(
-          child: MaterialApp(
-            home: const RawContentScreen(scanId: 'nonexistent'),
+          overrides: overrides,
+          child: const MaterialApp(
+            home: RawContentScreen(scanId: 'nonexistent'),
           ),
         ),
       );
@@ -59,6 +77,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            ...overrides,
             lastScanResultProvider.overrideWith((ref) => record),
           ],
           child: const MaterialApp(
@@ -75,6 +94,7 @@ void main() {
     testWidgets('displays app bar with correct title', (tester) async {
       await tester.pumpWidget(
         ProviderScope(
+          overrides: overrides,
           child: MaterialApp(
             home: const RawContentScreen(scanId: 'test'),
           ),

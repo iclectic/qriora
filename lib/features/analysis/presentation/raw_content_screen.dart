@@ -3,17 +3,37 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../scanner/presentation/scanner_screen.dart';
+import '../../../core/services/providers.dart';
 
 /// Raw content screen — shows the raw, unprocessed scanned value.
-class RawContentScreen extends ConsumerWidget {
+class RawContentScreen extends ConsumerStatefulWidget {
   final String scanId;
 
   const RawContentScreen({super.key, required this.scanId});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<RawContentScreen> createState() => _RawContentScreenState();
+}
+
+class _RawContentScreenState extends ConsumerState<RawContentScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(screenshotProtectionProvider).enable();
+    });
+  }
+
+  @override
+  void dispose() {
+    ref.read(screenshotProtectionProvider).disable();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final lastScan = ref.watch(lastScanResultProvider);
-    final record = (lastScan?.id == scanId) ? lastScan : null;
+    final record = (lastScan?.id == widget.scanId) ? lastScan : null;
 
     if (record == null) {
       return Scaffold(

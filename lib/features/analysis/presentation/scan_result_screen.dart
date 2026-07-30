@@ -13,19 +13,41 @@ import '../../analysis/domain/action_executor.dart';
 import '../../analysis/domain/deep_link_allowlist.dart';
 import '../../../core/services/providers.dart';
 import '../../../core/services/qriora_logger.dart';
+import '../../../core/services/screenshot_protection_service.dart';
 
 /// Scan result screen — displays the safe preview, risk findings,
 /// and suggested actions for the user to choose from.
-class ScanResultScreen extends ConsumerWidget {
+class ScanResultScreen extends ConsumerStatefulWidget {
   final String scanId;
 
   const ScanResultScreen({super.key, required this.scanId});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ScanResultScreen> createState() => _ScanResultScreenState();
+}
+
+class _ScanResultScreenState extends ConsumerState<ScanResultScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Enable screenshot protection on sensitive screen
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(screenshotProtectionProvider).enable();
+    });
+  }
+
+  @override
+  void dispose() {
+    // Disable screenshot protection when leaving
+    ref.read(screenshotProtectionProvider).disable();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     // Try to get the record from the in-memory provider first
     final lastScan = ref.watch(lastScanResultProvider);
-    final record = (lastScan?.id == scanId) ? lastScan : null;
+    final record = (lastScan?.id == widget.scanId) ? lastScan : null;
 
     if (record == null) {
       // TODO: Load from database
@@ -46,7 +68,7 @@ class ScanResultScreen extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.code),
             tooltip: 'View raw content',
-            onPressed: () => context.push('/result/$scanId/raw'),
+            onPressed: () => context.push('/result/${widget.scanId}/raw'),
           ),
         ],
       ),

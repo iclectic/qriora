@@ -4,7 +4,9 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../features/settings/domain/user_settings.dart';
 import '../../features/settings/domain/retention_policy.dart';
 import '../../features/analysis/domain/analysis_report_service.dart';
+import '../../features/export/domain/export_service.dart';
 import '../database/qriora_database.dart';
+import 'screenshot_protection_service.dart';
 
 /// Provides the [QrioraDatabase] instance.
 final databaseProvider = Provider<QrioraDatabase>((ref) {
@@ -161,4 +163,20 @@ final settingsProvider =
 final analysisReportServiceProvider = Provider<AnalysisReportService>((ref) {
   final storage = ref.watch(secureStorageProvider);
   return AnalysisReportService(storage: storage);
+});
+
+/// Provides the [ExportService].
+final exportServiceProvider = Provider<ExportService>((ref) {
+  return ExportService();
+});
+
+/// Provides the [ScreenshotProtectionService].
+final screenshotProtectionProvider = Provider<ScreenshotProtectionService>((ref) {
+  final service = ScreenshotProtectionService();
+  ref.onDispose(() {
+    if (service.isEnabled) {
+      service.disable();
+    }
+  });
+  return service;
 });

@@ -78,6 +78,12 @@ dependencies:
   path_provider: ^2.1.5
   path: ^1.9.0
 
+  # Encryption for export/import
+  encrypt: ^5.0.3
+
+  # Screenshot protection
+  flutter_windowmanager: ^0.2.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
