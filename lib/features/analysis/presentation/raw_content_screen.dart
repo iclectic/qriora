@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../scanner/presentation/scanner_screen.dart';
 import '../../../core/services/providers.dart';
+import '../../../core/services/screenshot_protection_service.dart';
 
 /// Raw content screen — shows the raw, unprocessed scanned value.
 class RawContentScreen extends ConsumerStatefulWidget {
@@ -16,17 +17,22 @@ class RawContentScreen extends ConsumerStatefulWidget {
 }
 
 class _RawContentScreenState extends ConsumerState<RawContentScreen> {
+  late final ScreenshotProtectionService _screenshotProtection;
+
   @override
   void initState() {
     super.initState();
+    _screenshotProtection = ref.read(screenshotProtectionProvider);
+    // Enable screenshot protection on sensitive screen
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(screenshotProtectionProvider).enable();
+      _screenshotProtection.enable();
     });
   }
 
   @override
   void dispose() {
-    ref.read(screenshotProtectionProvider).disable();
+    // Disable screenshot protection when leaving
+    _screenshotProtection.disable();
     super.dispose();
   }
 

@@ -23,6 +23,8 @@ import '../../../core/services/providers.dart';
 import '../../../core/services/qriora_logger.dart';
 import '../../../core/database/qriora_database.dart' hide ScanRecord;
 import '../../../app/theme/design_tokens.dart';
+import '../../../app/accessibility/accessibility_helpers.dart';
+import 'scanner_guidance_overlay.dart';
 import 'package:uuid/uuid.dart';
 import 'package:drift/drift.dart' show Value;
 
@@ -365,7 +367,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
           ),
         ],
       ),
-      body: _buildBody(),
+      body: QrioraFocusTraversalPolicy.wrap(_buildBody()),
     );
   }
 
@@ -412,26 +414,34 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
           isProcessing: _isProcessing,
           isPaused: _isPaused,
         ),
+        ScannerGuidanceOverlay(
+          isPaused: _isPaused,
+          isProcessing: _isProcessing,
+        ),
         if (_isProcessing)
-          const Positioned(
+          Positioned(
             bottom: 32,
             left: 0,
             right: 0,
             child: Center(
-              child: Card(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                      SizedBox(width: 8),
-                      Text('Analysing...'),
-                    ],
+              child: Semantics(
+                liveRegion: true,
+                label: 'Analysing scanned code',
+                child: const Card(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        SizedBox(width: 8),
+                        Text('Analysing...'),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -482,18 +492,21 @@ class _PermissionDeniedState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(QrioraDesignTokens.spaceLg),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.camera_alt_outlined, size: 64, color: Colors.grey),
-            const SizedBox(height: QrioraDesignTokens.spaceMd),
-            Text(
-              'Camera permission needed',
-              style: Theme.of(context).textTheme.titleLarge,
-              textAlign: TextAlign.center,
+    return Semantics(
+      container: true,
+      label: 'Camera permission required. Qriora needs camera access to scan codes.',
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(QrioraDesignTokens.spaceLg),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.camera_alt_outlined, size: 64, color: Colors.grey),
+              const SizedBox(height: QrioraDesignTokens.spaceMd),
+              Text(
+                'Camera permission needed',
+                style: Theme.of(context).textTheme.titleLarge,
+                textAlign: TextAlign.center,
             ),
             const SizedBox(height: QrioraDesignTokens.spaceSm),
             Text(
@@ -511,6 +524,7 @@ class _PermissionDeniedState extends StatelessWidget {
           ],
         ),
       ),
+    ),
     );
   }
 }

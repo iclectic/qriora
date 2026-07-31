@@ -122,27 +122,35 @@ flutter build ios --release
 ```
 lib/
   app/              # App shell, router, theme, bootstrap, config
+    accessibility/  # Semantics helpers, focus traversal
+    configuration/  # App scaffold, bottom nav
+    theme/          # Design tokens, light/dark themes
   core/
     database/       # Drift database, tables, DAOs
     services/       # Riverpod providers, settings, logging, error handling
+                     # Screenshot protection, low-storage monitoring
   features/
     scanner/        # domain (models, services) + presentation
-    analysis/       # domain (risk, actions) + presentation
+                     # Scanner guidance overlay for low-light/blurred
+    analysis/       # domain (risk, actions, reports) + presentation
     history/        # presentation
     favourites/     # presentation
     settings/       # domain + presentation
     privacy/        # presentation
-    export/         # presentation
+    export/         # domain (encrypted export/import) + presentation
     onboarding/     # presentation
 test/               # Unit and widget tests
 integration_test/   # Integration tests
-docs/               # PRD, threat model, ADRs
+docs/               # PRD, threat model, privacy policy, store listing, ADRs
 ```
 
 ## Documentation
 
 - [Product Requirements Document](docs/PRD.md)
 - [Threat Model](docs/threat-model.md)
+- [Privacy Policy](docs/PRIVACY_POLICY.md)
+- [Store Listing](docs/STORE_LISTING.md)
+- [Changelog](CHANGELOG.md)
 - [Architecture Decision Records](docs/adr/README.md)
 
 ## CI

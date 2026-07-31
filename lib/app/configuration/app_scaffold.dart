@@ -29,14 +29,18 @@ class AppScaffold extends StatelessWidget {
     final index = _currentIndex(context);
     return Scaffold(
       body: child,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: index,
-        onDestinationSelected: (i) => context.go(_tabs[i].path),
-        destinations: _tabs.map((t) => NavigationDestination(
-          icon: Icon(t.icon),
-          selectedIcon: Icon(t.selectedIcon),
-          label: t.label,
-        )).toList(),
+      bottomNavigationBar: Semantics(
+        container: true,
+        label: 'Main navigation',
+        child: NavigationBar(
+          selectedIndex: index,
+          onDestinationSelected: (i) => context.go(_tabs[i].path),
+          destinations: _tabs.map((t) => NavigationDestination(
+            icon: Icon(t.icon),
+            selectedIcon: Icon(t.selectedIcon),
+            label: t.label,
+          )).toList(),
+        ),
       ),
     );
   }

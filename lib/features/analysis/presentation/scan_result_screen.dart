@@ -27,19 +27,22 @@ class ScanResultScreen extends ConsumerStatefulWidget {
 }
 
 class _ScanResultScreenState extends ConsumerState<ScanResultScreen> {
+  late final ScreenshotProtectionService _screenshotProtection;
+
   @override
   void initState() {
     super.initState();
+    _screenshotProtection = ref.read(screenshotProtectionProvider);
     // Enable screenshot protection on sensitive screen
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(screenshotProtectionProvider).enable();
+      _screenshotProtection.enable();
     });
   }
 
   @override
   void dispose() {
     // Disable screenshot protection when leaving
-    ref.read(screenshotProtectionProvider).disable();
+    _screenshotProtection.disable();
     super.dispose();
   }
 
